@@ -8,6 +8,7 @@
 import type { Metadata } from 'next';
 import { Space_Grotesk, Inter } from 'next/font/google';
 import { Providers } from '@/components/providers';
+import Footer from '@/components/common/Footer';
 import './globals.css';
 
 const spaceGrotesk = Space_Grotesk({
@@ -146,8 +147,11 @@ export default function RootLayout({
       <head>
         <meta charSet="utf-8" />
       </head>
-      <body className="font-sans antialiased">
-        <Providers>{children}</Providers>
+      <body className="font-sans antialiased min-h-screen flex flex-col">
+        <div className="flex-1">
+          <Providers>{children}</Providers>
+        </div>
+        <Footer />
       </body>
     </html>
   );
