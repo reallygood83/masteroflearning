@@ -4,6 +4,8 @@
  * Neo-Brutalism 디자인 스타일 적용
  */
 
+/** @jsxImportSource react */
+
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 
