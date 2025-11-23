@@ -1,0 +1,215 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Neo-Brutalism Color Palette - UI Library Reference */
+    --neo-violet-200: #A8A6FF;
+    --neo-violet-300: #918efa;
+    --neo-violet-400: #807dfa;
+    --neo-pink-200: #FFA6F6;
+    --neo-pink-300: #fa8cef;
+    --neo-pink-400: #fa7fee;
+    --neo-red-200: #FF9F9F;
+    --neo-red-300: #fa7a7a;
+    --neo-red-400: #f76363;
+    --neo-orange-200: #FFC29F;
+    --neo-orange-300: #FF965B;
+    --neo-orange-400: #fa8543;
+    --neo-yellow-200: #FFF59F;
+    --neo-yellow-300: #FFF066;
+    --neo-yellow-400: #FFE500;
+    --neo-lime-200: #B8FF9F;
+    --neo-lime-300: #9dfc7c;
+    --neo-lime-400: #7df752;
+    --neo-cyan-200: #A6FAFF;
+    --neo-cyan-300: #79F7FF;
+    --neo-cyan-400: #53f2fc;
+    --neo-black: #000000;
+    --neo-white: #FFFFFF;
+
+    /* Standard Variables */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 60 100% 50%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 340 100% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 0%;
+    --input: 0 0% 0%;
+    --ring: 0 0% 0%;
+    --radius: 0rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* 파인만 스타일 커스텀 */
+.feynman-question-box {
+  @apply bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20;
+  @apply border-l-4 border-yellow-500;
+  @apply p-6 rounded-lg;
+}
+
+.feynman-title {
+  @apply text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+}
+
+/* 뉴스 카드 */
+.news-card {
+  @apply border rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer;
+  @apply hover:border-primary;
+}
+
+.news-card.selected {
+  @apply border-primary bg-primary/5;
+}
+
+/* 로딩 스피너 */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* 파인만 스타일 콘텐츠 */
+.prose-feynman {
+  @apply text-lg max-w-none;
+}
+
+.prose-feynman h1,
+.prose-feynman h2,
+.prose-feynman h3 {
+  @apply text-primary font-black mb-4;
+}
+
+.prose-feynman a {
+  @apply text-primary no-underline hover:underline;
+}
+
+.prose-feynman strong {
+  @apply text-foreground font-bold;
+}
+
+.prose-feynman code {
+  @apply text-primary bg-muted px-1 py-0.5 rounded;
+}
+
+/* Neo-Brutalism Utility Classes */
+@layer utilities {
+  /* Border Patterns */
+  .neo-border {
+    @apply border-black border-2;
+  }
+
+  .neo-border-thick {
+    @apply border-black border-4;
+  }
+
+  /* Shadow Patterns */
+  .neo-shadow-sm {
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 1);
+  }
+
+  .neo-shadow-md {
+    box-shadow: 4px 4px 0px rgba(0, 0, 0, 1);
+  }
+
+  .neo-shadow-lg {
+    box-shadow: 8px 8px 0px rgba(0, 0, 0, 1);
+  }
+
+  .neo-shadow-xl {
+    box-shadow: 12px 12px 0px rgba(0, 0, 0, 1);
+  }
+
+  /* Hover Shadow Effects */
+  .neo-hover-sm:hover {
+    box-shadow: 2px 2px 0px rgba(0, 0, 0, 1);
+  }
+
+  .neo-hover-md:hover {
+    box-shadow: 4px 4px 0px rgba(0, 0, 0, 1);
+  }
+
+  .neo-hover-lg:hover {
+    box-shadow: 8px 8px 0px rgba(0, 0, 0, 1);
+  }
+
+  /* Interactive Transform */
+  .neo-interactive {
+    @apply transition-all duration-200;
+  }
+
+  .neo-interactive:hover {
+    transform: translate(2px, 2px);
+  }
+
+  .neo-interactive:active {
+    transform: translate(4px, 4px);
+  }
+
+  /* Container Patterns */
+  .neo-container {
+    @apply border-black border-2 bg-white;
+  }
+
+  .neo-card {
+    @apply border-black border-2 rounded-md bg-white;
+    box-shadow: 8px 8px 0px rgba(0, 0, 0, 1);
+  }
+
+  .neo-card:hover {
+    box-shadow: 12px 12px 0px rgba(0, 0, 0, 1);
+  }
+
+  /* Disabled State */
+  .neo-disabled {
+    @apply border-[#727272] bg-[#D4D4D4] text-[#676767] cursor-not-allowed;
+    box-shadow: none !important;
+  }
+}

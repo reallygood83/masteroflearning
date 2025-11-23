@@ -1,0 +1,52 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background gradient -->
+    <defs>
+        <linearGradient id="bg-gradient" x1="0" y1="0" x2="512" y2="512" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#FFE66D"/>
+            <stop offset="50%" stop-color="#FF6B9D"/>
+            <stop offset="100%" stop-color="#C779FF"/>
+        </linearGradient>
+    </defs>
+
+    <!-- Background -->
+    <rect width="512" height="512" fill="url(#bg-gradient)" rx="64"/>
+
+    <!-- Main white box with neo-brutalism shadow -->
+    <rect x="64" y="64" width="384" height="384" fill="white" stroke="black" stroke-width="12"/>
+    <rect x="76" y="76" width="384" height="384" fill="black" opacity="0.3"/>
+
+    <!-- Graduation cap emoji representation -->
+    <g transform="translate(156, 120)">
+        <!-- Cap base -->
+        <rect x="0" y="80" width="200" height="20" fill="#1E40AF" stroke="black" stroke-width="6"/>
+        <!-- Cap top -->
+        <polygon points="100,40 20,80 180,80" fill="#2563EB" stroke="black" stroke-width="6"/>
+        <!-- Tassel -->
+        <line x1="100" y1="40" x2="120" y2="20" stroke="#FFD700" stroke-width="8" stroke-linecap="round"/>
+        <circle cx="120" cy="15" r="10" fill="#FFD700" stroke="black" stroke-width="3"/>
+    </g>
+
+    <!-- Robot/AI representation -->
+    <g transform="translate(200, 260)">
+        <!-- Robot head -->
+        <rect x="35" y="0" width="80" height="60" rx="8" fill="#60A5FA" stroke="black" stroke-width="6"/>
+        <!-- Eyes -->
+        <circle cx="55" cy="25" r="8" fill="white" stroke="black" stroke-width="3"/>
+        <circle cx="95" cy="25" r="8" fill="white" stroke="black" stroke-width="3"/>
+        <circle cx="55" cy="25" r="4" fill="black"/>
+        <circle cx="95" cy="25" r="4" fill="black"/>
+        <!-- Antenna -->
+        <line x1="75" y1="0" x2="75" y2="-15" stroke="black" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="75" cy="-15" r="6" fill="#FF6B9D" stroke="black" stroke-width="3"/>
+    </g>
+
+    <!-- Light bulb for idea -->
+    <g transform="translate(120, 280)">
+        <circle cx="0" cy="0" r="25" fill="#FEF08A" stroke="black" stroke-width="5"/>
+        <rect x="-12" y="20" width="24" height="15" rx="3" fill="#D4D4D4" stroke="black" stroke-width="4"/>
+        <!-- Light rays -->
+        <line x1="-30" y1="-15" x2="-40" y2="-25" stroke="#FFE66D" stroke-width="5" stroke-linecap="round"/>
+        <line x1="30" y1="-15" x2="40" y2="-25" stroke="#FFE66D" stroke-width="5" stroke-linecap="round"/>
+        <line x1="0" y1="-30" x2="0" y2="-42" stroke="#FFE66D" stroke-width="5" stroke-linecap="round"/>
+    </g>
+</svg>
