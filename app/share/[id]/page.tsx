@@ -1,17 +1,14 @@
 /**
- * \ub274\uc2a4 \uc0c1\uc138 \ud398\uc774\uc9c0
- * \ud30c\uc778\ub9cc \uae30\ubc95 \uae30\ubc18 \uc124\uba85
+ * 공유용 기사 상세 페이지 (로그인 불필요)
+ * 누구나 링크만 있으면 기사 읽기 가능
+ * SNS 공유 최적화
  */
 
-'use client';
-
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { Metadata } from 'next';
 import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, User, Eye, Clock, Share2, Bookmark, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Eye, Share2, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -23,7 +20,7 @@ interface Article {
   category: string;
   source: string;
   originalUrl: string;
-  publishedAt: Date;
+  publishedAt: any;
   views: number;
   difficultyLevel: 1 | 2 | 3 | 4 | 5;
   questions?: Array<{
@@ -34,12 +31,74 @@ interface Article {
   tags?: string[];
 }
 
-export default function NewsDetailPage({ params }: { params: { id: string } }) {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
-  const [article, setArticle] = useState<Article | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [bookmarked, setBookmarked] = useState(false);
+async function getArticle(id: string): Promise<Article | null> {
+  try {
+    const articleRef = doc(db, 'articles', id);
+    const articleSnap = await getDoc(articleRef);
+
+    if (articleSnap.exists()) {
+      const data = articleSnap.data();
+
+      // 조회수 증가
+      await updateDoc(articleRef, {
+        views: increment(1),
+      });
+
+      return {
+        id: articleSnap.id,
+        ...data,
+        publishedAt: data.publishedAt?.toDate() || new Date(),
+      } as Article;
+    }
+    return null;
+  } catch (error) {
+    console.error('기사 불러오기 오류:', error);
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const article = await getArticle(params.id);
+
+  if (!article) {
+    return {
+      title: '기사를 찾을 수 없습니다',
+    };
+  }
+
+  const baseUrl = 'https://news.teaboard.link';
+
+  return {
+    title: article.feynmanTitle,
+    description: article.feynmanSummary,
+    openGraph: {
+      title: article.feynmanTitle,
+      description: article.feynmanSummary,
+      url: `${baseUrl}/share/${params.id}`,
+      type: 'article',
+      publishedTime: article.publishedAt.toISOString(),
+      authors: [article.source],
+      tags: article.tags || [],
+      images: [
+        {
+          url: `${baseUrl}/api/og?id=${params.id}`,
+          width: 1200,
+          height: 630,
+          alt: article.feynmanTitle,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.feynmanTitle,
+      description: article.feynmanSummary,
+      images: [`${baseUrl}/api/og?id=${params.id}`],
+    },
+  };
+}
+
+export default async function ShareArticlePage({ params }: { params: { id: string } }) {
+  const article = await getArticle(params.id);
 
   const difficultyColors = {
     1: 'bg-green-300',
@@ -57,78 +116,37 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
     5: '매우 어려움',
   };
 
-  useEffect(() => {
-    if (!authLoading && !user) {
-      router.push(`/auth/login?callbackUrl=/ko/news/${params.id}`);
-    }
-  }, [user, authLoading, router, params.id]);
-
-  useEffect(() => {
-    const fetchArticle = async () => {
-      if (!user) return;
-
-      try {
-        const articleRef = doc(db, 'articles', params.id);
-        const articleSnap = await getDoc(articleRef);
-
-        if (articleSnap.exists()) {
-          const data = articleSnap.data();
-          setArticle({
-            id: articleSnap.id,
-            ...data,
-            publishedAt: data.publishedAt?.toDate() || new Date(),
-          } as Article);
-
-          // 조회수 증가
-          await updateDoc(articleRef, {
-            views: increment(1),
-          });
-        }
-      } catch (error) {
-        console.error('기사 불러오기 오류:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchArticle();
-  }, [user, params.id]);
-
-  const handleShare = async () => {
-    // 공개 공유 URL 생성 (누구나 로그인 없이 읽을 수 있음)
-    const shareUrl = `${window.location.origin}/share/${params.id}`;
-
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: article?.feynmanTitle,
-          text: article?.feynmanSummary,
-          url: shareUrl,
-        });
-      } catch (error) {
-        console.error('공유 오류:', error);
-      }
-    } else {
-      // Fallback: 클립보드에 복사
-      navigator.clipboard.writeText(shareUrl);
-      alert('공유 링크가 복사되었습니다!\n누구나 로그인 없이 읽을 수 있는 링크입니다.');
-    }
-  };
-
-  if (authLoading || loading) {
+  if (!article) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-300 via-pink-300 to-blue-300">
-        <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 flex items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin" />
-          <p className="font-black text-xl">로딩 중...</p>
+        <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-12 text-center">
+          <h1 className="text-3xl font-black mb-4">기사를 찾을 수 없습니다</h1>
+          <p className="font-bold text-gray-600 mb-6">요청하신 기사가 존재하지 않거나 삭제되었습니다.</p>
+          <Link
+            href="/"
+            className="inline-block px-6 py-3 bg-blue-400 text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-black"
+          >
+            홈으로 돌아가기
+          </Link>
         </div>
       </div>
     );
   }
 
-  if (!user || !article) {
-    return null;
-  }
+  const handleShare = () => {
+    if (typeof window !== 'undefined') {
+      const shareUrl = window.location.href;
+      if (navigator.share) {
+        navigator.share({
+          title: article.feynmanTitle,
+          text: article.feynmanSummary,
+          url: shareUrl,
+        });
+      } else {
+        navigator.clipboard.writeText(shareUrl);
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-300 via-pink-300 to-blue-300">
@@ -139,39 +157,23 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
             <span className="text-3xl">🤖</span>
             <h1 className="text-2xl font-black">AI EDU NEWS</h1>
           </Link>
-          <nav className="flex items-center gap-4">
-            <Link
-              href="/ko/news"
-              className="px-4 py-2 font-bold hover:underline"
-            >
-              뉴스
-            </Link>
-            <Link
-              href="/ko/dashboard"
-              className="px-4 py-2 font-bold hover:underline"
-            >
-              대시보드
-            </Link>
-            <div className="flex items-center gap-2 pl-4 border-l-4 border-black">
-              <img
-                src={user.photoURL || '/default-avatar.png'}
-                alt={user.displayName || '사용자'}
-                className="w-10 h-10 rounded-full border-2 border-black"
-              />
-              <span className="font-bold">{user.displayName}</span>
-            </div>
-          </nav>
+          <Link
+            href="/auth/login"
+            className="px-6 py-2 bg-blue-400 text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-black"
+          >
+            로그인하고 더 보기
+          </Link>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* 뒤로 가기 */}
         <Link
-          href="/ko/news"
+          href="/"
           className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-bold"
         >
           <ArrowLeft className="w-5 h-5" />
-          목록으로
+          홈으로
         </Link>
 
         {/* Main Article */}
@@ -231,9 +233,10 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
                 href={article.originalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="ml-4 px-4 py-2 bg-blue-500 text-white border-2 border-black font-bold hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 whitespace-nowrap"
+                className="ml-4 px-4 py-2 bg-blue-500 text-white border-2 border-black font-bold hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 whitespace-nowrap flex items-center gap-2"
               >
-                원문 보기 →
+                <ExternalLink className="w-4 h-4" />
+                원문 보기
               </a>
             </div>
           </div>
@@ -302,31 +305,38 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
             </div>
           )}
 
-          {/* Actions */}
-          <div className="flex gap-4 mt-8 pt-8 border-t-4 border-black">
+          {/* Share Action */}
+          <div className="mt-8 pt-8 border-t-4 border-black">
             <button
               onClick={handleShare}
-              className="flex-1 px-6 py-3 bg-blue-400 text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-black flex items-center justify-center gap-2"
+              className="w-full px-6 py-3 bg-blue-400 text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-black flex items-center justify-center gap-2"
             >
               <Share2 className="w-5 h-5" />
-              공유하기
-            </button>
-            <button
-              onClick={() => setBookmarked(!bookmarked)}
-              className={`flex-1 px-6 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-black flex items-center justify-center gap-2 ${bookmarked ? 'bg-yellow-300' : 'bg-white'
-                }`}
-            >
-              <Bookmark className={`w-5 h-5 ${bookmarked ? 'fill-current' : ''}`} />
-              {bookmarked ? '보관함' : '보관하기'}
+              이 기사 공유하기
             </button>
           </div>
         </article>
 
-        {/* Related Articles Section (placeholder for future) */}
-        <div className="mt-8">
-          <h2 className="text-2xl font-black mb-4">🔍 관련 기사</h2>
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 text-center">
-            <p className="font-bold text-gray-600">관련 기사를 불러오는 중...</p>
+        {/* CTA - 로그인 유도 */}
+        <div className="mt-8 bg-gradient-to-r from-pink-300 to-blue-300 border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 text-center">
+          <h3 className="text-2xl font-black mb-4">더 많은 AI 교육 뉴스를 보고 싶으신가요?</h3>
+          <p className="font-bold text-gray-800 mb-6">
+            로그인하시면 맞춤형 뉴스 추천, 북마크, 학습 대시보드 등<br />
+            다양한 기능을 무료로 이용하실 수 있습니다!
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Link
+              href="/auth/register"
+              className="px-8 py-3 bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-black"
+            >
+              무료 회원가입
+            </Link>
+            <Link
+              href="/auth/login"
+              className="px-8 py-3 bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-black"
+            >
+              로그인
+            </Link>
           </div>
         </div>
       </div>
