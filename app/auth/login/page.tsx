@@ -7,9 +7,9 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 
-export default function LoginPage() {
+function LoginForm() {
   const { signInWithGoogle, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -117,5 +117,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-300 via-pink-300 to-blue-300">
+        <div className="text-4xl font-black">로딩 중...</div>
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }
