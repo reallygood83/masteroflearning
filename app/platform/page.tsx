@@ -156,29 +156,6 @@ export default function PlatformPage() {
           </div>
         </section>
 
-        {/* 통계 섹션 */}
-        <section className="mb-16">
-          <div className="bg-gradient-to-r from-pink-300 to-cyan-300 border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)] p-8 md:p-12 max-w-4xl mx-auto">
-            <h3 className="text-4xl font-black text-center mb-8">
-              함께 성장하고 있습니다 📊
-            </h3>
-            <div className="grid grid-cols-3 gap-8 text-center">
-              <div>
-                <div className="text-5xl font-black mb-2">1000+</div>
-                <div className="font-bold text-gray-800">큐레이션된 뉴스</div>
-              </div>
-              <div>
-                <div className="text-5xl font-black mb-2">500+</div>
-                <div className="font-bold text-gray-800">활성 사용자</div>
-              </div>
-              <div>
-                <div className="text-5xl font-black mb-2">50+</div>
-                <div className="font-bold text-gray-800">주간 업데이트</div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* 가치 제안 */}
         <section className="mb-16">
           <div className="bg-white border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)] p-8 md:p-12 max-w-4xl mx-auto">
