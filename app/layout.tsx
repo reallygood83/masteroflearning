@@ -23,6 +23,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  // Base URL for absolute paths (required for OG images)
+  metadataBase: new URL('https://ai-edu-news.vercel.app'),
+
   // 기본 메타데이터
   title: {
     default: 'AI 교육 뉴스, 쉽게 읽자! | Feynman AI News',
