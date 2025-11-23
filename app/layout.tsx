@@ -25,7 +25,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   // Base URL for absolute paths (required for OG images)
-  metadataBase: new URL('https://ai-edu-news.vercel.app'),
+  metadataBase: new URL('https://news.teaboard.link'),
 
   // 기본 메타데이터
   title: {
@@ -112,7 +112,7 @@ export const metadata: Metadata = {
   // 추가 메타데이터
   manifest: '/site.webmanifest',
   alternates: {
-    canonical: 'https://ai-edu-news.vercel.app',
+    canonical: 'https://news.teaboard.link',
   },
   robots: {
     index: true,
