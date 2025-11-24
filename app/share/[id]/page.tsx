@@ -1,15 +1,19 @@
+'use client';
+
 /**
  * 공유용 기사 상세 페이지 (로그인 불필요)
  * 누구나 링크만 있으면 기사 읽기 가능
  * SNS 공유 최적화
  */
 
-import { Metadata } from 'next';
-import { adminDb } from '@/lib/firebase-admin';
+import { useEffect, useState } from 'react';
+import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, User, Eye, Share2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Eye, Share2, ExternalLink, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useParams } from 'next/navigation';
 
 interface Article {
   id: string;
@@ -30,76 +34,45 @@ interface Article {
   tags?: string[];
 }
 
-async function getArticle(id: string): Promise<Article | null> {
-  try {
-    const articleRef = adminDb.collection('articles').doc(id);
-    const articleSnap = await articleRef.get();
+export default function ShareArticlePage() {
+  const params = useParams();
+  const id = params.id as string;
+  const [article, setArticle] = useState<Article | null>(null);
+  const [loading, setLoading] = useState(true);
 
-    if (articleSnap.exists) {
-      const data = articleSnap.data();
+  useEffect(() => {
+    const fetchArticle = async () => {
+      try {
+        const articleRef = doc(db, 'articles', id);
+        const articleSnap = await getDoc(articleRef);
 
-      if (!data) return null;
+        if (articleSnap.exists()) {
+          const data = articleSnap.data();
 
-      // 조회수 증가
-      await articleRef.update({
-        views: (data.views || 0) + 1,
-      });
+          // 조회수 증가
+          try {
+            await updateDoc(articleRef, {
+              views: increment(1),
+            });
+          } catch (error) {
+            console.error('조회수 업데이트 실패:', error);
+          }
 
-      return {
-        id: articleSnap.id,
-        ...data,
-        publishedAt: data.publishedAt?.toDate() || new Date(),
-      } as Article;
-    }
-    return null;
-  } catch (error) {
-    console.error('기사 불러오기 오류:', error);
-    return null;
-  }
-}
-
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const article = await getArticle(params.id);
-
-  if (!article) {
-    return {
-      title: '기사를 찾을 수 없습니다',
+          setArticle({
+            id: articleSnap.id,
+            ...data,
+            publishedAt: data.publishedAt?.toDate() || new Date(),
+          } as Article);
+        }
+      } catch (error) {
+        console.error('기사 불러오기 오류:', error);
+      } finally {
+        setLoading(false);
+      }
     };
-  }
 
-  const baseUrl = 'https://news.teaboard.link';
-
-  return {
-    title: article.feynmanTitle,
-    description: article.feynmanSummary,
-    openGraph: {
-      title: article.feynmanTitle,
-      description: article.feynmanSummary,
-      url: `${baseUrl}/share/${params.id}`,
-      type: 'article',
-      publishedTime: article.publishedAt.toISOString(),
-      authors: [article.source],
-      tags: article.tags || [],
-      images: [
-        {
-          url: `${baseUrl}/api/og?id=${params.id}`,
-          width: 1200,
-          height: 630,
-          alt: article.feynmanTitle,
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: article.feynmanTitle,
-      description: article.feynmanSummary,
-      images: [`${baseUrl}/api/og?id=${params.id}`],
-    },
-  };
-}
-
-export default async function ShareArticlePage({ params }: { params: { id: string } }) {
-  const article = await getArticle(params.id);
+    fetchArticle();
+  }, [id]);
 
   const difficultyColors = {
     1: 'bg-green-300',
@@ -116,6 +89,31 @@ export default async function ShareArticlePage({ params }: { params: { id: strin
     4: '어려움',
     5: '매우 어려움',
   };
+
+  const handleShare = async () => {
+    if (!article) return;
+
+    const shareUrl = window.location.href;
+
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('✅ 공유 링크가 복사되었습니다!\\n\\n누구나 로그인 없이 읽을 수 있는 링크입니다.\\n\\n' + shareUrl);
+    } catch (err) {
+      console.error('링크 복사 실패:', err);
+      alert('❌ 링크 복사에 실패했습니다.\\n\\n수동으로 복사해주세요:\\n' + shareUrl);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-300 via-pink-300 to-blue-300">
+        <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 flex items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <p className="font-black text-xl">로딩 중...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!article) {
     return (
@@ -134,39 +132,8 @@ export default async function ShareArticlePage({ params }: { params: { id: strin
     );
   }
 
-  const handleShare = () => {
-    if (typeof window !== 'undefined') {
-      const shareUrl = window.location.href;
-      if (navigator.share) {
-        navigator.share({
-          title: article.feynmanTitle,
-          text: article.feynmanSummary,
-          url: shareUrl,
-        });
-      } else {
-        navigator.clipboard.writeText(shareUrl);
-      }
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-300 via-pink-300 to-blue-300">
-      {/* Header */}
-      <header className="border-b-4 border-black bg-white sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-3xl">🤖</span>
-            <h1 className="text-2xl font-black">AI EDU NEWS</h1>
-          </Link>
-          <Link
-            href="/auth/login"
-            className="px-6 py-2 bg-blue-400 text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-black"
-          >
-            로그인하고 더 보기
-          </Link>
-        </div>
-      </header>
-
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* 뒤로 가기 */}
         <Link
