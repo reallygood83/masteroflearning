@@ -10,67 +10,56 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Brain, Sparkles, BookOpen, Users, Zap, ArrowRight, LogIn, UserPlus } from 'lucide-react';
 
+import { useState, useEffect } from 'react';
+import { collection, getCountFromServer, query, where, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+
 export default function KoreanHomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [stats, setStats] = useState({
+    totalArticles: 0,
+    totalUsers: 0,
+    weeklyUpdates: 0,
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // 1. 전체 기사 수 (status: published)
+        const articlesColl = collection(db, 'articles');
+        const publishedQuery = query(articlesColl, where('status', '==', 'published'));
+        const articlesSnapshot = await getCountFromServer(publishedQuery);
+
+        // 2. 전체 사용자 수
+        const usersColl = collection(db, 'users');
+        const usersSnapshot = await getCountFromServer(usersColl);
+
+        // 3. 주간 업데이트 (최근 7일)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const weeklyQuery = query(
+          articlesColl,
+          where('status', '==', 'published'),
+          where('publishedAt', '>=', Timestamp.fromDate(sevenDaysAgo))
+        );
+        const weeklySnapshot = await getCountFromServer(weeklyQuery);
+
+        setStats({
+          totalArticles: articlesSnapshot.data().count,
+          totalUsers: usersSnapshot.data().count,
+          weeklyUpdates: weeklySnapshot.data().count,
+        });
+      } catch (error) {
+        console.error('통계 불러오기 실패:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-300 via-pink-300 to-blue-300">
-      {/* Header */}
-      <header className="border-b-4 border-black bg-white sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/ko" className="flex items-center gap-2">
-            <span className="text-3xl">🤖</span>
-            <h1 className="text-2xl font-black">AI EDU NEWS</h1>
-          </Link>
-          <nav className="flex items-center gap-4">
-            {loading ? (
-              <div className="px-4 py-2 font-bold text-gray-400">
-                로딩 중...
-              </div>
-            ) : user ? (
-              <>
-                <Link
-                  href="/ko/news"
-                  className="px-4 py-2 font-bold hover:underline"
-                >
-                  뉴스
-                </Link>
-                <Link
-                  href="/ko/dashboard"
-                  className="px-4 py-2 font-bold hover:underline"
-                >
-                  대시보드
-                </Link>
-                {user.photoURL && (
-                  <img
-                    src={user.photoURL}
-                    alt={user.displayName || '사용자'}
-                    className="w-10 h-10 rounded-full border-2 border-black"
-                  />
-                )}
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/auth/login"
-                  className="px-4 py-2 bg-cyan-200 border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-bold flex items-center gap-2"
-                >
-                  <LogIn className="w-4 h-4" />
-                  로그인
-                </Link>
-                <Link
-                  href="/auth/register"
-                  className="px-4 py-2 bg-lime-200 border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-bold flex items-center gap-2"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  회원가입
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-      </header>
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-16 md:py-24">
@@ -167,15 +156,15 @@ export default function KoreanHomePage() {
         <div className="bg-white border-4 border-black shadow-[8px_8px_0px_rgba(0,0,0,1)] p-12 max-w-4xl mx-auto">
           <div className="grid grid-cols-3 gap-8 text-center">
             <div>
-              <div className="text-5xl font-black mb-2">1000+</div>
+              <div className="text-5xl font-black mb-2">{stats.totalArticles.toLocaleString()}+</div>
               <div className="font-bold text-gray-800">큐레이션된 뉴스</div>
             </div>
             <div>
-              <div className="text-5xl font-black mb-2">500+</div>
+              <div className="text-5xl font-black mb-2">{stats.totalUsers.toLocaleString()}+</div>
               <div className="font-bold text-gray-800">활성 사용자</div>
             </div>
             <div>
-              <div className="text-5xl font-black mb-2">50+</div>
+              <div className="text-5xl font-black mb-2">{stats.weeklyUpdates.toLocaleString()}+</div>
               <div className="font-bold text-gray-800">주간 업데이트</div>
             </div>
           </div>
