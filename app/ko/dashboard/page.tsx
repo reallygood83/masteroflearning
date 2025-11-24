@@ -21,7 +21,7 @@ import {
   Loader2,
   Eye
 } from 'lucide-react';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
+import { collection, query, where, getDocs, orderBy, limit, getCountFromServer } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
 interface SavedArticle {
@@ -78,7 +78,7 @@ export default function DashboardPage() {
       try {
         setLoading(true);
 
-        // Fetch saved/bookmarked articles
+        // 1. Fetch saved/bookmarked articles (Top 6)
         const bookmarksRef = collection(db, 'users', user.uid, 'bookmarks');
         const bookmarksQuery = query(bookmarksRef, orderBy('savedAt', 'desc'), limit(6));
         const bookmarksSnapshot = await getDocs(bookmarksQuery);
@@ -90,20 +90,28 @@ export default function DashboardPage() {
         })) as SavedArticle[];
         setSavedArticles(bookmarksData);
 
-        // Fetch recent reading history
+        // 2. Fetch reading history for analysis (Top 300 for stats)
         const historyRef = collection(db, 'users', user.uid, 'history');
-        const historyQuery = query(historyRef, orderBy('readAt', 'desc'), limit(4));
-        const historySnapshot = await getDocs(historyQuery);
+        const historyStatsQuery = query(historyRef, orderBy('readAt', 'desc'), limit(300));
+        const historySnapshot = await getDocs(historyStatsQuery);
+
+        // 3. Get total count of read articles
+        const totalCountSnapshot = await getCountFromServer(historyRef);
+        const totalReadCount = totalCountSnapshot.data().count;
 
         const historyData = historySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
           readAt: doc.data().readAt?.toDate(),
         })) as SavedArticle[];
-        setRecentArticles(historyData);
 
-        // Calculate learning statistics (mock data for now)
-        const categoryCounts = bookmarksData.reduce((acc: any, article) => {
+        // Set recent articles for UI (Top 4)
+        setRecentArticles(historyData.slice(0, 4));
+
+        // 4. Calculate Statistics
+
+        // A. Favorite Category
+        const categoryCounts = historyData.reduce((acc: any, article) => {
           acc[article.category] = (acc[article.category] || 0) + 1;
           return acc;
         }, {});
@@ -113,7 +121,8 @@ export default function DashboardPage() {
           ''
         );
 
-        const difficultyProgress = bookmarksData.reduce((acc, article) => {
+        // B. Difficulty Progress
+        const difficultyProgress = historyData.reduce((acc, article) => {
           const level = article.difficultyLevel || 3;
           if (level <= 2) acc.beginner++;
           else if (level === 3) acc.intermediate++;
@@ -121,11 +130,56 @@ export default function DashboardPage() {
           return acc;
         }, { beginner: 0, intermediate: 0, advanced: 0 });
 
+        // C. Streak Calculation
+        let streak = 0;
+        if (historyData.length > 0) {
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+
+          // Group read dates (unique days)
+          const readDates = new Set(
+            historyData
+              .filter(item => item.readAt)
+              .map(item => {
+                const date = new Date(item.readAt!);
+                date.setHours(0, 0, 0, 0);
+                return date.getTime();
+              })
+          );
+
+          // Check streak from today backwards
+          let checkDate = new Date(today);
+
+          // If didn't read today, check from yesterday
+          if (!readDates.has(checkDate.getTime())) {
+            checkDate.setDate(checkDate.getDate() - 1);
+            // If didn't read yesterday either, streak is 0
+            if (!readDates.has(checkDate.getTime())) {
+              streak = 0;
+            } else {
+              streak = 1;
+              checkDate.setDate(checkDate.getDate() - 1);
+              while (readDates.has(checkDate.getTime())) {
+                streak++;
+                checkDate.setDate(checkDate.getDate() - 1);
+              }
+            }
+          } else {
+            // Read today
+            streak = 1;
+            checkDate.setDate(checkDate.getDate() - 1);
+            while (readDates.has(checkDate.getTime())) {
+              streak++;
+              checkDate.setDate(checkDate.getDate() - 1);
+            }
+          }
+        }
+
         setStats({
-          totalArticlesRead: historyData.length,
-          totalTimeSpent: historyData.length * 5, // Estimate 5 min per article
-          streakDays: 7, // Mock data
-          favoriteCategory: favoriteCategory || 'AI 기초',
+          totalArticlesRead: totalReadCount,
+          totalTimeSpent: totalReadCount * 5, // Estimate 5 min per article
+          streakDays: streak,
+          favoriteCategory: favoriteCategory || '아직 없음',
           difficultyProgress,
         });
 
@@ -304,7 +358,7 @@ export default function DashboardPage() {
                     </p>
                     <div className="flex items-center gap-2">
                       <span className={`text-xs px-3 py-1 border border-black font-bold ${(article.difficultyLevel || 3) <= 2 ? 'bg-lime-200' :
-                          (article.difficultyLevel || 3) === 3 ? 'bg-cyan-200' : 'bg-pink-200'
+                        (article.difficultyLevel || 3) === 3 ? 'bg-cyan-200' : 'bg-pink-200'
                         }`}>
                         {(article.difficultyLevel || 3) <= 2 ? '초급 🟢' :
                           (article.difficultyLevel || 3) === 3 ? '중급 🟡' : '고급 🔴'}
@@ -371,15 +425,43 @@ export default function DashboardPage() {
           <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-white border-2 border-black p-6">
               <p className="text-xl font-black mb-2">🎯 다음 단계로</p>
-              <p className="font-bold text-gray-700 mb-4">
-                초급 기사를 {stats.difficultyProgress.beginner}개 읽었어요. 이제 중급 단계에 도전해보세요!
-              </p>
-              <Link
-                href="/ko/news?difficulty=intermediate"
-                className="inline-block px-4 py-2 bg-cyan-200 border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-bold text-sm"
-              >
-                중급 기사 보기
-              </Link>
+              {stats.difficultyProgress.beginner > 5 && stats.difficultyProgress.intermediate <= 5 ? (
+                <>
+                  <p className="font-bold text-gray-700 mb-4">
+                    초급 기사를 충분히 읽으셨네요! 이제 중급 난이도에 도전해볼까요?
+                  </p>
+                  <Link
+                    href="/ko/news?difficulty=intermediate"
+                    className="inline-block px-4 py-2 bg-cyan-200 border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-bold text-sm"
+                  >
+                    중급 기사 보기
+                  </Link>
+                </>
+              ) : stats.difficultyProgress.intermediate > 5 ? (
+                <>
+                  <p className="font-bold text-gray-700 mb-4">
+                    중급 기사도 마스터하셨군요! 고급 난이도로 실력을 키워보세요.
+                  </p>
+                  <Link
+                    href="/ko/news?difficulty=advanced"
+                    className="inline-block px-4 py-2 bg-pink-200 border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-bold text-sm"
+                  >
+                    고급 기사 보기
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold text-gray-700 mb-4">
+                    아직 시작 단계시군요! 초급 기사부터 차근차근 읽어보세요.
+                  </p>
+                  <Link
+                    href="/ko/news?difficulty=beginner"
+                    className="inline-block px-4 py-2 bg-lime-200 border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-bold text-sm"
+                  >
+                    초급 기사 보기
+                  </Link>
+                </>
+              )}
             </div>
 
             <div className="bg-white border-2 border-black p-6">
