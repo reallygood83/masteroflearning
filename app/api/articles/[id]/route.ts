@@ -4,30 +4,33 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const articleRef = doc(db, 'articles', params.id);
-    const articleSnap = await getDoc(articleRef);
+    const articleRef = adminDb.collection('articles').doc(params.id);
+    const articleSnap = await articleRef.get();
 
-    if (!articleSnap.exists()) {
+    if (!articleSnap.exists) {
       return NextResponse.json({ error: 'Article not found' }, { status: 404 });
     }
 
     const data = articleSnap.data();
 
+    if (!data) {
+      return NextResponse.json({ error: 'Article data is null' }, { status: 404 });
+    }
+
     return NextResponse.json({
       id: articleSnap.id,
-      feynmanTitle: data.feynmanTitle,
-      feynmanSummary: data.feynmanSummary,
-      category: data.category,
-      source: data.source,
-      difficultyLevel: data.difficultyLevel,
+      feynmanTitle: data.feynmanTitle || '제목 없음',
+      feynmanSummary: data.feynmanSummary || '',
+      category: data.category || '기타',
+      source: data.source || '출처 미상',
+      difficultyLevel: data.difficultyLevel || 3,
       views: data.views || 0,
     });
   } catch (error) {
