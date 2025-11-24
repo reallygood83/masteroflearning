@@ -25,10 +25,19 @@ export async function GET(request: NextRequest) {
     }
 
     // Firebase에서 기사 데이터 가져오기
-    const article = await fetchArticleData(id);
+    let article = await fetchArticleData(id);
 
+    // 데이터를 가져오지 못한 경우 기본값 사용
     if (!article) {
-      return new Response('Article not found', { status: 404 });
+      console.warn(`[OG] Article not found for ID: ${id}, using default`);
+      article = {
+        feynmanTitle: 'AI 교육 뉴스',
+        feynmanSummary: '파인만 기법으로 쉽게 풀어드립니다',
+        category: 'AI교육',
+        source: 'AI EDU NEWS',
+        difficultyLevel: 3,
+        views: 0,
+      };
     }
 
     // Neo-Brutalism 스타일 OG 이미지 생성
