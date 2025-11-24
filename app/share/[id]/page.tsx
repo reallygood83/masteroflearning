@@ -1,19 +1,15 @@
-'use client';
-
 /**
  * 공유용 기사 상세 페이지 (로그인 불필요)
  * 누구나 링크만 있으면 기사 읽기 가능
  * SNS 공유 최적화
  */
 
-import { useEffect, useState } from 'react';
-import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { Metadata } from 'next';
+import { adminDb } from '@/lib/firebase-admin';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, User, Eye, Share2, ExternalLink, Loader2 } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Eye, Share2, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useParams } from 'next/navigation';
 
 interface Article {
   id: string;
@@ -34,45 +30,99 @@ interface Article {
   tags?: string[];
 }
 
-export default function ShareArticlePage() {
-  const params = useParams();
-  const id = params.id as string;
-  const [article, setArticle] = useState<Article | null>(null);
-  const [loading, setLoading] = useState(true);
+async function getArticle(id: string): Promise<Article | null> {
+  try {
+    console.log('🔍 [Share Page] Fetching article:', id);
 
-  useEffect(() => {
-    const fetchArticle = async () => {
-      try {
-        const articleRef = doc(db, 'articles', id);
-        const articleSnap = await getDoc(articleRef);
+    const articleRef = adminDb.collection('articles').doc(id);
+    const articleSnap = await articleRef.get();
 
-        if (articleSnap.exists()) {
-          const data = articleSnap.data();
+    if (articleSnap.exists) {
+      const data = articleSnap.data();
 
-          // 조회수 증가
-          try {
-            await updateDoc(articleRef, {
-              views: increment(1),
-            });
-          } catch (error) {
-            console.error('조회수 업데이트 실패:', error);
-          }
-
-          setArticle({
-            id: articleSnap.id,
-            ...data,
-            publishedAt: data.publishedAt?.toDate() || new Date(),
-          } as Article);
-        }
-      } catch (error) {
-        console.error('기사 불러오기 오류:', error);
-      } finally {
-        setLoading(false);
+      if (!data) {
+        console.error('❌ [Share Page] Article data is null');
+        return null;
       }
-    };
 
-    fetchArticle();
-  }, [id]);
+      console.log('✅ [Share Page] Article found:', data.feynmanTitle);
+
+      // 조회수 증가 (비동기로 처리하여 실패해도 페이지는 렌더링)
+      articleRef.update({
+        views: (data.views || 0) + 1,
+      }).catch(err => console.error('⚠️ [Share Page] Failed to update views:', err));
+
+      return {
+        id: articleSnap.id,
+        feynmanTitle: data.feynmanTitle || '제목 없음',
+        feynmanContent: data.feynmanContent || '',
+        feynmanSummary: data.feynmanSummary || '',
+        category: data.category || '기타',
+        source: data.source || '출처 미상',
+        originalUrl: data.originalUrl || '',
+        publishedAt: data.publishedAt?.toDate() || new Date(),
+        views: data.views || 0,
+        difficultyLevel: data.difficultyLevel || 3,
+        questions: data.questions,
+        tags: data.tags,
+      } as Article;
+    }
+
+    console.error('❌ [Share Page] Article not found:', id);
+    return null;
+  } catch (error) {
+    console.error('❌ [Share Page] Error fetching article:', error);
+    console.error('[Share Page] Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
+    return null;
+  }
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const article = await getArticle(params.id);
+
+  if (!article) {
+    return {
+      title: '기사를 찾을 수 없습니다 | AI EDU NEWS',
+      description: '요청하신 기사가 존재하지 않거나 삭제되었습니다.',
+    };
+  }
+
+  const baseUrl = 'https://news.teaboard.link';
+
+  return {
+    title: `${article.feynmanTitle} | AI EDU NEWS`,
+    description: article.feynmanSummary,
+    openGraph: {
+      title: article.feynmanTitle,
+      description: article.feynmanSummary,
+      url: `${baseUrl}/share/${params.id}`,
+      type: 'article',
+      publishedTime: article.publishedAt.toISOString(),
+      authors: [article.source],
+      tags: article.tags || [],
+      images: [
+        {
+          url: `${baseUrl}/api/og?id=${params.id}`,
+          width: 1200,
+          height: 630,
+          alt: article.feynmanTitle,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: article.feynmanTitle,
+      description: article.feynmanSummary,
+      images: [`${baseUrl}/api/og?id=${params.id}`],
+    },
+  };
+}
+
+export default async function ShareArticlePage({ params }: { params: { id: string } }) {
+  const article = await getArticle(params.id);
 
   const difficultyColors = {
     1: 'bg-green-300',
@@ -89,31 +139,6 @@ export default function ShareArticlePage() {
     4: '어려움',
     5: '매우 어려움',
   };
-
-  const handleShare = async () => {
-    if (!article) return;
-
-    const shareUrl = window.location.href;
-
-    try {
-      await navigator.clipboard.writeText(shareUrl);
-      alert('✅ 공유 링크가 복사되었습니다!\\n\\n누구나 로그인 없이 읽을 수 있는 링크입니다.\\n\\n' + shareUrl);
-    } catch (err) {
-      console.error('링크 복사 실패:', err);
-      alert('❌ 링크 복사에 실패했습니다.\\n\\n수동으로 복사해주세요:\\n' + shareUrl);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-300 via-pink-300 to-blue-300">
-        <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 flex items-center gap-4">
-          <Loader2 className="w-8 h-8 animate-spin" />
-          <p className="font-black text-xl">로딩 중...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (!article) {
     return (
@@ -183,31 +208,33 @@ export default function ShareArticlePage() {
           </div>
 
           {/* Original Article Link */}
-          <div className="bg-yellow-50 border-4 border-yellow-500 p-6 mb-8">
-            <h2 className="text-xl font-black mb-3">📰 원문 기사</h2>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-bold text-gray-700 mb-2">출처: {article.source}</p>
+          {article.originalUrl && (
+            <div className="bg-yellow-50 border-4 border-yellow-500 p-6 mb-8">
+              <h2 className="text-xl font-black mb-3">📰 원문 기사</h2>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-bold text-gray-700 mb-2">출처: {article.source}</p>
+                  <a
+                    href={article.originalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline font-bold text-sm break-all"
+                  >
+                    {article.originalUrl}
+                  </a>
+                </div>
                 <a
                   href={article.originalUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline font-bold text-sm break-all"
+                  className="ml-4 px-4 py-2 bg-blue-500 text-white border-2 border-black font-bold hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 whitespace-nowrap flex items-center gap-2"
                 >
-                  {article.originalUrl}
+                  <ExternalLink className="w-4 h-4" />
+                  원문 보기
                 </a>
               </div>
-              <a
-                href={article.originalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-4 px-4 py-2 bg-blue-500 text-white border-2 border-black font-bold hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 whitespace-nowrap flex items-center gap-2"
-              >
-                <ExternalLink className="w-4 h-4" />
-                원문 보기
-              </a>
             </div>
-          </div>
+          )}
 
           {/* Content */}
           <div className="prose prose-lg max-w-none mb-8">
@@ -272,17 +299,6 @@ export default function ShareArticlePage() {
               </div>
             </div>
           )}
-
-          {/* Share Action */}
-          <div className="mt-8 pt-8 border-t-4 border-black">
-            <button
-              onClick={handleShare}
-              className="w-full px-6 py-3 bg-blue-400 text-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-black flex items-center justify-center gap-2"
-            >
-              <Share2 className="w-5 h-5" />
-              이 기사 공유하기
-            </button>
-          </div>
         </article>
 
         {/* CTA - 로그인 유도 */}
