@@ -97,11 +97,13 @@ export default function Navbar() {
                             <div className="relative" ref={dropdownRef}>
                                 <button
                                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                    className="flex items-center gap-2 bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 px-4 py-2 font-bold"
+                                    className="flex items-center gap-2 focus:outline-none"
                                 >
-                                    <User className="w-5 h-5" />
-                                    <span className="hidden md:inline">{user.displayName || '사용자'}</span>
-                                    <ChevronDown className={`w-4 h-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                                    <img
+                                        src={user.photoURL || '/default-avatar.png'}
+                                        alt={user.displayName || '사용자'}
+                                        className="w-10 h-10 rounded-full border-2 border-black hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all duration-200"
+                                    />
                                 </button>
 
                                 {isDropdownOpen && (
