@@ -26,11 +26,13 @@ import { db } from '@/lib/firebase';
 
 interface SavedArticle {
   id: string;
-  title: string;
-  summary: string;
+  articleId: string;
+  feynmanTitle: string;
+  feynmanSummary: string;
   category: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  difficultyLevel?: number;
   readAt?: Date;
+  savedAt?: Date;
 }
 
 interface LearningStats {
@@ -84,11 +86,12 @@ export default function DashboardPage() {
         const bookmarksData = bookmarksSnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
+          savedAt: doc.data().savedAt?.toDate(),
         })) as SavedArticle[];
         setSavedArticles(bookmarksData);
 
         // Fetch recent reading history
-        const historyRef = collection(db, 'users', user.uid, 'readingHistory');
+        const historyRef = collection(db, 'users', user.uid, 'history');
         const historyQuery = query(historyRef, orderBy('readAt', 'desc'), limit(4));
         const historySnapshot = await getDocs(historyQuery);
 
@@ -111,9 +114,10 @@ export default function DashboardPage() {
         );
 
         const difficultyProgress = bookmarksData.reduce((acc, article) => {
-          if (article.difficulty) {
-            acc[article.difficulty]++;
-          }
+          const level = article.difficultyLevel || 3;
+          if (level <= 2) acc.beginner++;
+          else if (level === 3) acc.intermediate++;
+          else acc.advanced++;
           return acc;
         }, { beginner: 0, intermediate: 0, advanced: 0 });
 
@@ -291,19 +295,19 @@ export default function DashboardPage() {
                 {savedArticles.map((article) => (
                   <Link
                     key={article.id}
-                    href={`/ko/news/${article.id}`}
+                    href={`/ko/news/${article.articleId}`}
                     className="block p-4 bg-lime-50 border-2 border-black hover:shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200"
                   >
-                    <h4 className="font-black mb-2">{article.title}</h4>
+                    <h4 className="font-black mb-2">{article.feynmanTitle}</h4>
                     <p className="text-sm font-bold text-gray-700 line-clamp-2 mb-2">
-                      {article.summary}
+                      {article.feynmanSummary}
                     </p>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs px-3 py-1 bg-cyan-200 border border-black font-bold">
-                        {article.category}
-                      </span>
-                      <span className={`text-xs px-3 py-1 ${difficultyColors[article.difficulty]} border border-black font-bold`}>
-                        {difficultyLabels[article.difficulty]}
+                      <span className={`text-xs px-3 py-1 border border-black font-bold ${(article.difficultyLevel || 3) <= 2 ? 'bg-lime-200' :
+                          (article.difficultyLevel || 3) === 3 ? 'bg-cyan-200' : 'bg-pink-200'
+                        }`}>
+                        {(article.difficultyLevel || 3) <= 2 ? '초급 🟢' :
+                          (article.difficultyLevel || 3) === 3 ? '중급 🟡' : '고급 🔴'}
                       </span>
                     </div>
                   </Link>
@@ -334,11 +338,11 @@ export default function DashboardPage() {
                 {recentArticles.map((article) => (
                   <Link
                     key={article.id}
-                    href={`/ko/news/${article.id}`}
+                    href={`/ko/news/${article.articleId}`}
                     className="block p-4 bg-cyan-50 border-2 border-black hover:shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200"
                   >
                     <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-black flex-1">{article.title}</h4>
+                      <h4 className="font-black flex-1">{article.feynmanTitle}</h4>
                       {article.readAt && (
                         <span className="text-xs font-bold text-gray-600 ml-2">
                           {article.readAt.toLocaleDateString('ko-KR')}
@@ -346,7 +350,7 @@ export default function DashboardPage() {
                       )}
                     </div>
                     <p className="text-sm font-bold text-gray-700 line-clamp-2 mb-2">
-                      {article.summary}
+                      {article.feynmanSummary}
                     </p>
                     <span className="text-xs px-3 py-1 bg-pink-200 border border-black font-bold inline-block">
                       {article.category}

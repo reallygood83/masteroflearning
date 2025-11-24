@@ -8,7 +8,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { doc, getDoc, updateDoc, increment, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment, collection, query, where, orderBy, limit, getDocs, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, User, Eye, Clock, Share2, Bookmark, Loader2 } from 'lucide-react';
@@ -122,15 +122,56 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
     fetchArticleAndRelated();
   }, [user, params.id]);
 
+  // 북마크 상태 확인
+  useEffect(() => {
+    const checkBookmarkStatus = async () => {
+      if (!user) return;
+      try {
+        const bookmarkRef = doc(db, 'users', user.uid, 'bookmarks', params.id);
+        const bookmarkSnap = await getDoc(bookmarkRef);
+        setBookmarked(bookmarkSnap.exists());
+      } catch (error) {
+        console.error('북마크 확인 오류:', error);
+      }
+    };
+    checkBookmarkStatus();
+  }, [user, params.id]);
+
+  // 읽은 목록에 추가
+  useEffect(() => {
+    const addToHistory = async () => {
+      if (!user || !article) return;
+      try {
+        const historyRef = doc(db, 'users', user.uid, 'history', params.id);
+        await setDoc(historyRef, {
+          articleId: article.id,
+          feynmanTitle: article.feynmanTitle,
+          feynmanSummary: article.feynmanSummary,
+          category: article.category,
+          difficultyLevel: article.difficultyLevel,
+          readAt: serverTimestamp(),
+        });
+      } catch (error) {
+        console.error('히스토리 저장 오류:', error);
+      }
+    };
+
+    if (article) {
+      addToHistory();
+    }
+  }, [user, article, params.id]);
+
   const handleShare = async () => {
+    if (!article) return;
+
     // 공개 공유 URL 생성 (누구나 로그인 없이 읽을 수 있음)
     const shareUrl = `${window.location.origin}/share/${params.id}`;
 
     if (navigator.share) {
       try {
         await navigator.share({
-          title: article?.feynmanTitle,
-          text: article?.feynmanSummary,
+          title: article.feynmanTitle,
+          text: article.feynmanSummary,
           url: shareUrl,
         });
       } catch (error) {
@@ -145,6 +186,36 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
         console.error('링크 복사 실패:', err);
         alert('링크 복사에 실패했습니다.');
       }
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (!user || !article) return;
+
+    try {
+      const bookmarkRef = doc(db, 'users', user.uid, 'bookmarks', params.id);
+
+      if (bookmarked) {
+        // 북마크 삭제
+        await deleteDoc(bookmarkRef);
+        setBookmarked(false);
+        alert('보관함에서 삭제되었습니다.');
+      } else {
+        // 북마크 추가
+        await setDoc(bookmarkRef, {
+          articleId: article.id,
+          feynmanTitle: article.feynmanTitle,
+          feynmanSummary: article.feynmanSummary,
+          category: article.category,
+          difficultyLevel: article.difficultyLevel,
+          savedAt: serverTimestamp(),
+        });
+        setBookmarked(true);
+        alert('보관함에 저장되었습니다.');
+      }
+    } catch (error) {
+      console.error('북마크 처리 오류:', error);
+      alert('작업을 처리하는 중 오류가 발생했습니다.');
     }
   };
 
@@ -345,7 +416,7 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
               공유하기
             </button>
             <button
-              onClick={() => setBookmarked(!bookmarked)}
+              onClick={handleBookmark}
               className={`flex-1 px-6 py-3 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-black flex items-center justify-center gap-2 ${bookmarked ? 'bg-yellow-300' : 'bg-white'
                 }`}
             >
