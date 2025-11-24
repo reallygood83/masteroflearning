@@ -11,8 +11,11 @@ import Link from 'next/link';
 import { UserPlus, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import { auth } from '@/lib/firebase';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import GoogleLoginButton from '@/app/components/GoogleLoginButton';
 
-export default function RegisterPage() {
+import { Suspense } from 'react';
+
+function RegisterForm() {
   const router = useRouter();
   const [formData, setFormData] = useState({
     name: '',
@@ -122,6 +125,19 @@ export default function RegisterPage() {
               <p className="font-bold text-sm">{error}</p>
             </div>
           )}
+
+          {/* 구글 로그인 버튼 */}
+          <div className="mb-6">
+            <GoogleLoginButton />
+            <div className="relative mt-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t-2 border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500 font-bold">또는 이메일로 가입</span>
+              </div>
+            </div>
+          </div>
 
           {/* 폼 */}
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -233,5 +249,17 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-lime-300 via-cyan-300 to-pink-300">
+        <div className="text-4xl font-black">로딩 중...</div>
+      </div>
+    }>
+      <RegisterForm />
+    </Suspense>
   );
 }

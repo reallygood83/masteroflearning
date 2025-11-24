@@ -152,8 +152,8 @@ export default function NewsListPage() {
       <div className="container mx-auto px-4 py-8">
         {/* Page Title */}
         <div className="mb-8">
-          <h2 className="text-5xl font-black mb-4">📰 AI 교육 뉴스</h2>
-          <p className="text-xl font-bold text-gray-800">
+          <h2 className="text-3xl md:text-5xl font-black mb-4">📰 AI 교육 뉴스</h2>
+          <p className="text-lg md:text-xl font-bold text-gray-800">
             최신 AI 교육 소식을 파인만 기법으로 쉽게 이해하세요
           </p>
           <p className="text-sm font-bold text-gray-600 mt-2">
@@ -167,7 +167,7 @@ export default function NewsListPage() {
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={`px-6 py-3 font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 ${selectedCategory === category.id
+              className={`px-4 py-2 md:px-6 md:py-3 font-black border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 text-sm md:text-base ${selectedCategory === category.id
                 ? 'bg-blue-400 text-white'
                 : 'bg-white'
                 }`}

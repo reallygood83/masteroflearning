@@ -8,7 +8,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, increment, collection, query, where, orderBy, limit, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, User, Eye, Clock, Share2, Bookmark, Loader2 } from 'lucide-react';
@@ -38,6 +38,7 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [article, setArticle] = useState<Article | null>(null);
+  const [relatedArticles, setRelatedArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookmarked, setBookmarked] = useState(false);
 
@@ -65,7 +66,7 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
   }, [user, authLoading, router, params.id]);
 
   useEffect(() => {
-    const fetchArticle = async () => {
+    const fetchArticleAndRelated = async () => {
       if (!user) return;
 
       try {
@@ -74,11 +75,37 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
 
         if (articleSnap.exists()) {
           const data = articleSnap.data();
-          setArticle({
+          const currentArticle = {
             id: articleSnap.id,
             ...data,
             publishedAt: data.publishedAt?.toDate() || new Date(),
-          } as Article);
+          } as Article;
+
+          setArticle(currentArticle);
+
+          // 관련 기사 가져오기 (같은 카테고리)
+          if (currentArticle.category) {
+            const articlesRef = collection(db, 'articles');
+            const q = query(
+              articlesRef,
+              where('category', '==', currentArticle.category),
+              where('status', '==', 'published'), // 게시된 기사만
+              orderBy('publishedAt', 'desc'),
+              limit(4) // 현재 기사 포함해서 4개 가져옴
+            );
+
+            const querySnapshot = await getDocs(q);
+            const related = querySnapshot.docs
+              .map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+                publishedAt: doc.data().publishedAt?.toDate() || new Date(),
+              } as Article))
+              .filter(a => a.id !== params.id) // 현재 기사 제외
+              .slice(0, 3); // 3개만 유지
+
+            setRelatedArticles(related);
+          }
 
           // 조회수 증가
           await updateDoc(articleRef, {
@@ -92,7 +119,7 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
       }
     };
 
-    fetchArticle();
+    fetchArticleAndRelated();
   }, [user, params.id]);
 
   const handleShare = async () => {
@@ -181,7 +208,7 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
         </Link>
 
         {/* Main Article */}
-        <article className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8">
+        <article className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-4 md:p-8">
           {/* Header */}
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-4">
@@ -193,10 +220,10 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
               </span>
             </div>
 
-            <h1 className="text-4xl font-black mb-4">{article.feynmanTitle}</h1>
+            <h1 className="text-2xl md:text-4xl font-black mb-4">{article.feynmanTitle}</h1>
 
             {/* Meta */}
-            <div className="flex items-center gap-6 text-sm font-bold text-gray-600 pb-4 border-b-4 border-black">
+            <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-6 text-sm font-bold text-gray-600 pb-4 border-b-4 border-black">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4" />
                 <span>{article.source}</span>
@@ -331,9 +358,36 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
         {/* Related Articles Section (placeholder for future) */}
         <div className="mt-8">
           <h2 className="text-2xl font-black mb-4">🔍 관련 기사</h2>
-          <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 text-center">
-            <p className="font-bold text-gray-600">관련 기사를 불러오는 중...</p>
-          </div>
+          {relatedArticles.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {relatedArticles.map((related) => (
+                <Link
+                  key={related.id}
+                  href={`/ko/news/${related.id}`}
+                  className="block bg-white border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 p-6"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`px-2 py-1 text-xs font-black border border-black ${difficultyColors[related.difficultyLevel] || 'bg-gray-200'}`}>
+                      {difficultyLabels[related.difficultyLevel] || '보통'}
+                    </span>
+                    <span className="text-xs font-bold text-gray-500">
+                      {related.publishedAt.toLocaleDateString('ko-KR')}
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-black mb-2 line-clamp-2">
+                    {related.feynmanTitle}
+                  </h3>
+                  <p className="text-sm text-gray-600 line-clamp-2">
+                    {related.feynmanSummary}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-white border-4 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] p-8 text-center">
+              <p className="font-bold text-gray-600">관련 기사가 없습니다.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -9,10 +9,53 @@ import { useAuth } from '@/contexts/AuthContext';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { BookOpen, Sparkles, Users, TrendingUp, ArrowRight } from 'lucide-react';
+import { collection, getCountFromServer, query, where, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useState, useEffect } from 'react';
 
 export default function HomePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [stats, setStats] = useState({
+    totalArticles: 0,
+    totalUsers: 0,
+    weeklyUpdates: 0,
+  });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        // 1. 전체 기사 수 (status: published)
+        const articlesColl = collection(db, 'articles');
+        const publishedQuery = query(articlesColl, where('status', '==', 'published'));
+        const articlesSnapshot = await getCountFromServer(publishedQuery);
+
+        // 2. 전체 사용자 수
+        const usersColl = collection(db, 'users');
+        const usersSnapshot = await getCountFromServer(usersColl);
+
+        // 3. 주간 업데이트 (최근 7일)
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const weeklyQuery = query(
+          articlesColl,
+          where('status', '==', 'published'),
+          where('publishedAt', '>=', Timestamp.fromDate(sevenDaysAgo))
+        );
+        const weeklySnapshot = await getCountFromServer(weeklyQuery);
+
+        setStats({
+          totalArticles: articlesSnapshot.data().count,
+          totalUsers: usersSnapshot.data().count,
+          weeklyUpdates: weeklySnapshot.data().count,
+        });
+      } catch (error) {
+        console.error('통계 불러오기 실패:', error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   const handleGetStarted = async () => {
     if (user) {
@@ -148,6 +191,37 @@ export default function HomePage() {
             <p className="font-bold text-gray-800">
               AI 교육의 최신 트렌드와 미래 전망을 한눈에 확인하세요.
             </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="bg-white border-y-4 border-black py-16">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-8 text-center">
+            {/* Stat 1 */}
+            <div className="p-6">
+              <div className="text-5xl font-black mb-2 text-blue-500">
+                {stats.totalArticles.toLocaleString()}+
+              </div>
+              <div className="text-xl font-bold text-gray-800">큐레이션된 뉴스</div>
+            </div>
+
+            {/* Stat 2 */}
+            <div className="p-6 border-l-0 md:border-l-4 border-black">
+              <div className="text-5xl font-black mb-2 text-pink-500">
+                {stats.totalUsers.toLocaleString()}+
+              </div>
+              <div className="text-xl font-bold text-gray-800">함께하는 교육자</div>
+            </div>
+
+            {/* Stat 3 */}
+            <div className="p-6 border-l-0 md:border-l-4 border-black">
+              <div className="text-5xl font-black mb-2 text-yellow-500">
+                {stats.weeklyUpdates.toLocaleString()}+
+              </div>
+              <div className="text-xl font-bold text-gray-800">이번 주 업데이트</div>
+            </div>
           </div>
         </div>
       </section>
