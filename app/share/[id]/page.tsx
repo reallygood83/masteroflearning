@@ -5,8 +5,7 @@
  */
 
 import { Metadata } from 'next';
-import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { adminDb } from '@/lib/firebase-admin';
 import Link from 'next/link';
 import { ArrowLeft, Calendar, User, Eye, Share2, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
@@ -33,15 +32,17 @@ interface Article {
 
 async function getArticle(id: string): Promise<Article | null> {
   try {
-    const articleRef = doc(db, 'articles', id);
-    const articleSnap = await getDoc(articleRef);
+    const articleRef = adminDb.collection('articles').doc(id);
+    const articleSnap = await articleRef.get();
 
-    if (articleSnap.exists()) {
+    if (articleSnap.exists) {
       const data = articleSnap.data();
 
+      if (!data) return null;
+
       // 조회수 증가
-      await updateDoc(articleRef, {
-        views: increment(1),
+      await articleRef.update({
+        views: (data.views || 0) + 1,
       });
 
       return {
