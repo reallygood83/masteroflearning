@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Trash2, ChevronDown, LayoutDashboard } from 'lucide-react';
+import { LogOut, User, Trash2, ChevronDown } from 'lucide-react';
 import { signOut, deleteUser } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
@@ -92,6 +92,12 @@ export default function Navbar() {
                             >
                                 뉴스
                             </Link>
+                            <Link
+                                href="/ko/dashboard"
+                                className="px-4 py-2 font-bold hover:underline hidden md:block"
+                            >
+                                대시보드
+                            </Link>
 
                             {/* User Dropdown */}
                             <div className="relative" ref={dropdownRef}>
@@ -113,16 +119,6 @@ export default function Navbar() {
                                             <p className="font-black truncate">{user.email}</p>
                                         </div>
                                         <ul className="py-2">
-                                            <li>
-                                                <Link
-                                                    href="/ko/dashboard"
-                                                    className="flex items-center gap-3 px-4 py-3 hover:bg-yellow-100 font-bold transition-colors"
-                                                    onClick={() => setIsDropdownOpen(false)}
-                                                >
-                                                    <LayoutDashboard className="w-4 h-4" />
-                                                    대시보드
-                                                </Link>
-                                            </li>
                                             <li>
                                                 <button
                                                     onClick={handleLogout}
