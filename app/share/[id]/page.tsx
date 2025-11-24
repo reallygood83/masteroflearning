@@ -105,10 +105,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       tags: article.tags || [],
       images: [
         {
-          url: `${baseUrl}/api/og?id=${params.id}`,
+          url: `${baseUrl}/og-image.png`,
           width: 1200,
           height: 630,
-          alt: article.feynmanTitle,
+          alt: 'AI EDU NEWS - AI 교육 뉴스, 쉽게 읽자!',
         },
       ],
     },
@@ -116,7 +116,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
       card: 'summary_large_image',
       title: article.feynmanTitle,
       description: article.feynmanSummary,
-      images: [`${baseUrl}/api/og?id=${params.id}`],
+      images: [`${baseUrl}/og-image.png`],
     },
   };
 }
