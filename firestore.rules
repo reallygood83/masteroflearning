@@ -1,0 +1,86 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ========================================
+    // Helper Functions
+    // ========================================
+    
+    // 인증된 사용자인지 확인
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // 본인인지 확인
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // 관리자인지 확인 (admin 필드가 true인 사용자)
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true;
+    }
+    
+    // ========================================
+    // Articles Collection
+    // ========================================
+    match /articles/{articleId} {
+      // 모든 사용자가 published 상태의 기사를 읽을 수 있음
+      allow read: if resource.data.status == 'published';
+      
+      // 관리자만 기사를 생성, 수정, 삭제할 수 있음
+      allow create, update, delete: if isAdmin();
+      
+      // 조회수 증가는 인증된 사용자만 가능 (views 필드만 업데이트)
+      allow update: if isAuthenticated() && 
+                       request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']);
+    }
+    
+    // ========================================
+    // Users Collection
+    // ========================================
+    match /users/{userId} {
+      // 본인의 사용자 문서만 읽기 가능
+      allow read: if isOwner(userId);
+      
+      // 본인의 사용자 문서만 생성/수정 가능
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId);
+      
+      // 본인의 사용자 문서만 삭제 가능
+      allow delete: if isOwner(userId);
+      
+      // ========================================
+      // Bookmarks Subcollection
+      // ========================================
+      match /bookmarks/{bookmarkId} {
+        // 본인의 북마크만 읽기/쓰기 가능
+        allow read, write: if isOwner(userId);
+      }
+      
+      // ========================================
+      // History Subcollection
+      // ========================================
+      match /history/{historyId} {
+        // 본인의 읽기 기록만 읽기/쓰기 가능
+        allow read, write: if isOwner(userId);
+      }
+    }
+    
+    // ========================================
+    // Crawl Logs Collection (관리자 전용)
+    // ========================================
+    match /crawl-logs/{logId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // ========================================
+    // 기타 모든 문서는 기본적으로 접근 불가
+    // ========================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
