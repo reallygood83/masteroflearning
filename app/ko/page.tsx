@@ -40,7 +40,6 @@ export default function KoreanHomePage() {
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         const weeklyQuery = query(
           articlesColl,
-          where('status', '==', 'published'),
           where('publishedAt', '>=', Timestamp.fromDate(sevenDaysAgo))
         );
         const weeklySnapshot = await getCountFromServer(weeklyQuery);
