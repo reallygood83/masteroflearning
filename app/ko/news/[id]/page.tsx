@@ -59,7 +59,8 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     if (!authLoading && !user) {
-      router.push(`/auth/login?callbackUrl=/ko/news/${params.id}`);
+      // 로그인하지 않은 사용자는 공유 페이지로 리다이렉트
+      router.replace(`/share/${params.id}`);
     }
   }, [user, authLoading, router, params.id]);
 
@@ -110,8 +111,13 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
       }
     } else {
       // Fallback: 클립보드에 복사
-      navigator.clipboard.writeText(shareUrl);
-      alert('공유 링크가 복사되었습니다!\n누구나 로그인 없이 읽을 수 있는 링크입니다.');
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        alert('공유 링크가 복사되었습니다!\n누구나 로그인 없이 읽을 수 있는 링크입니다.');
+      } catch (err) {
+        console.error('링크 복사 실패:', err);
+        alert('링크 복사에 실패했습니다.');
+      }
     }
   };
 
