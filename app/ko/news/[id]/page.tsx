@@ -236,37 +236,7 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-300 via-pink-300 to-blue-300">
-      {/* Header */}
-      <header className="border-b-4 border-black bg-white sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-3xl">🤖</span>
-            <h1 className="text-2xl font-black">AI EDU NEWS</h1>
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link
-              href="/ko/news"
-              className="px-4 py-2 font-bold hover:underline"
-            >
-              뉴스
-            </Link>
-            <Link
-              href="/ko/dashboard"
-              className="px-4 py-2 font-bold hover:underline"
-            >
-              대시보드
-            </Link>
-            <div className="flex items-center gap-2 pl-4 border-l-4 border-black">
-              <img
-                src={user.photoURL || '/default-avatar.png'}
-                alt={user.displayName || '사용자'}
-                className="w-10 h-10 rounded-full border-2 border-black"
-              />
-              <span className="font-bold">{user.displayName}</span>
-            </div>
-          </nav>
-        </div>
-      </header>
+
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* 뒤로 가기 */}
@@ -461,6 +431,6 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
           )}
         </div>
       </div>
-    </div>
+    </div >
   );
 }

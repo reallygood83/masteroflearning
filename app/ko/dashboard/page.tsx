@@ -220,23 +220,7 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-300 via-lime-300 to-cyan-300">
-      {/* Header */}
-      <header className="border-b-4 border-black bg-white sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/ko" className="flex items-center gap-2">
-            <span className="text-3xl">🤖</span>
-            <h1 className="text-2xl font-black">AI EDU NEWS</h1>
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link
-              href="/ko/news"
-              className="px-4 py-2 bg-violet-200 border-2 border-black shadow-[4px_4px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 font-bold"
-            >
-              뉴스 보기
-            </Link>
-          </nav>
-        </div>
-      </header>
+
 
       <div className="container mx-auto px-4 py-12">
         {/* Welcome Section */}

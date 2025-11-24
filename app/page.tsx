@@ -67,44 +67,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-300 via-pink-300 to-blue-300">
-      {/* Header */}
-      <header className="border-b-4 border-black bg-white">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <span className="text-3xl">🤖</span>
-            <h1 className="text-2xl font-black">AI EDU NEWS</h1>
-          </div>
-          <nav className="flex items-center gap-4">
-            {loading ? (
-              <div className="px-6 py-2 font-bold text-gray-400">
-                로딩 중...
-              </div>
-            ) : user ? (
-              <>
-                <Link
-                  href="/ko/news"
-                  className="px-4 py-2 font-bold hover:underline"
-                >
-                  뉴스
-                </Link>
-                <Link
-                  href="/ko/dashboard"
-                  className="bg-yellow-300 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 px-4 py-2 font-bold"
-                >
-                  대시보드
-                </Link>
-              </>
-            ) : (
-              <Link
-                href="/auth/login"
-                className="bg-blue-400 border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] transition-all duration-200 px-6 py-2 font-bold"
-              >
-                로그인
-              </Link>
-            )}
-          </nav>
-        </div>
-      </header>
+
 
       {/* Hero Section */}
       <section className="container mx-auto px-4 py-20">

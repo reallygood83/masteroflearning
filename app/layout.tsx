@@ -137,6 +137,10 @@ export const metadata: Metadata = {
   },
 };
 
+import Navbar from '@/app/components/Navbar';
+
+// ... (existing imports)
+
 export default function RootLayout({
   children,
 }: {
@@ -148,9 +152,12 @@ export default function RootLayout({
         <meta charSet="utf-8" />
       </head>
       <body className="font-sans antialiased min-h-screen flex flex-col">
-        <div className="flex-1">
-          <Providers>{children}</Providers>
-        </div>
+        <Providers>
+          <Navbar />
+          <div className="flex-1">
+            {children}
+          </div>
+        </Providers>
         <Footer />
       </body>
     </html>
