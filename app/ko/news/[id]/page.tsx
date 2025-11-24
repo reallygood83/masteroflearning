@@ -167,25 +167,12 @@ export default function NewsDetailPage({ params }: { params: { id: string } }) {
     // 공개 공유 URL 생성 (누구나 로그인 없이 읽을 수 있음)
     const shareUrl = `${window.location.origin}/share/${params.id}`;
 
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: article.feynmanTitle,
-          text: article.feynmanSummary,
-          url: shareUrl,
-        });
-      } catch (error) {
-        console.error('공유 오류:', error);
-      }
-    } else {
-      // Fallback: 클립보드에 복사
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        alert('공유 링크가 복사되었습니다!\n누구나 로그인 없이 읽을 수 있는 링크입니다.');
-      } catch (err) {
-        console.error('링크 복사 실패:', err);
-        alert('링크 복사에 실패했습니다.');
-      }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      alert('✅ 공유 링크가 복사되었습니다!\n\n누구나 로그인 없이 읽을 수 있는 링크입니다.\n\n' + shareUrl);
+    } catch (err) {
+      console.error('링크 복사 실패:', err);
+      alert('❌ 링크 복사에 실패했습니다.\n\n수동으로 복사해주세요:\n' + shareUrl);
     }
   };
 
