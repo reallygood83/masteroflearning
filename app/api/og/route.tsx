@@ -12,15 +12,21 @@ const WIDTH = 1200;
 const HEIGHT = 630;
 
 export async function GET(request: NextRequest) {
+  console.log('[OG] Request received');
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
+    console.log('[OG] Article ID:', id);
+
     if (!id) {
+      console.error('[OG] Missing article ID');
       return new Response('Missing article ID', { status: 400 });
     }
 
     // Firebase에서 기사 데이터 가져오기
+    console.log('[OG] Fetching article data...');
     let article = await fetchArticleData(id);
 
     // 데이터를 가져오지 못한 경우 기본값 사용
@@ -34,7 +40,11 @@ export async function GET(request: NextRequest) {
         difficultyLevel: 3,
         views: 0,
       };
+    } else {
+      console.log('[OG] Article data loaded:', article.feynmanTitle);
     }
+
+    console.log('[OG] Generating image...');
 
     // 간단한 OG 이미지 생성
     return new ImageResponse(
